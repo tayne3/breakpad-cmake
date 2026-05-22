@@ -1,1 +1,4 @@
 *.db binary diff=nodiff
+
+breakpad/* linguist-detectable=false
+linux-syscall-support/* linguist-detectable=false
