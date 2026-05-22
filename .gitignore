@@ -1,0 +1,17 @@
+/.vscode/
+/.vs/
+/.idea/
+/.zed/
+/.cursor/
+/.task/
+
+/build/
+/out/
+/cmake-build-*/
+/cmake_modules/
+/[Bb]in/
+/.[Cc]ache/
+/.[Dd]iscard/
+/.DS_Store
+
+/*.env
