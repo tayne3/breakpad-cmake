@@ -146,6 +146,7 @@ set_target_properties(breakpad PROPERTIES
   CXX_STANDARD_REQUIRED ON
   CXX_EXTENSIONS ON
 )
+target_compile_features(breakpad PUBLIC cxx_std_${_breakpad_cxx_std})
 
 if(WIN32)
   target_compile_definitions(breakpad PRIVATE
