@@ -29,15 +29,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
 endif()
 
-set(BREAKPAD_SOURCE_DIR "" CACHE PATH "Path to an existing breakpad source checkout (overrides download)")
+option(BREAKPAD_USE_FETCH "Automatically download breakpad source if BREAKPAD_SOURCE_DIR is not set" ON)
 set(BREAKPAD_GIT_REPOSITORY "https://chromium.googlesource.com/breakpad/breakpad" CACHE STRING "Git repository URL to fetch breakpad source from")
 set(BREAKPAD_GIT_TAG "2c736308b5a4c7a8371fa3a3e434f551eddd17c9" CACHE STRING "Breakpad git tag or commit hash")
-option(BREAKPAD_USE_FETCH "Automatically download breakpad source if BREAKPAD_SOURCE_DIR is not set" ON)
+set(BREAKPAD_SOURCE_DIR "" CACHE PATH "Path to an existing breakpad source checkout (overrides download)")
 
-if(BREAKPAD_SOURCE_DIR)
-  set(_breakpad_rootdir "${BREAKPAD_SOURCE_DIR}")
-  message(STATUS "Using breakpad source at: ${_breakpad_rootdir}")
-elseif(BREAKPAD_USE_FETCH)
+if(BREAKPAD_USE_FETCH)
   if(NOT DEFINED ENV{CPM_SOURCE_CACHE})
     set(ENV{CPM_SOURCE_CACHE} ${CMAKE_SOURCE_DIR}/cmake_modules)
   endif()
@@ -50,6 +47,9 @@ elseif(BREAKPAD_USE_FETCH)
     DOWNLOAD_ONLY
   )
   set(_breakpad_rootdir "${breakpad-external_SOURCE_DIR}")
+elseif(BREAKPAD_SOURCE_DIR)
+  set(_breakpad_rootdir "${BREAKPAD_SOURCE_DIR}")
+  message(STATUS "Using breakpad source at: ${_breakpad_rootdir}")
 else()
   set(_breakpad_rootdir "${CMAKE_CURRENT_SOURCE_DIR}/breakpad")
   message(STATUS "Using local breakpad source at: ${_breakpad_rootdir}")
@@ -89,7 +89,7 @@ else()
 endif()
 
 list(FILTER _breakpad_srcs EXCLUDE REGEX "/sender|/tests|/unittests|/testcases")
-list(FILTER _breakpad_srcs EXCLUDE REGEX "(_unittest|_test|microdump|minidump|synth|upload).*\\.cc$")
+list(FILTER _breakpad_srcs EXCLUDE REGEX "(_unittest|_test|test_|microdump|minidump|synth|upload).*\\.cc$")
 
 if(WIN32)
   set(_breakpad_exclude_files
@@ -107,6 +107,11 @@ if(WIN32)
     "sym_upload_v2_protocol"
     "symbol_collector_client"
     "http_upload"
+    "dwarf_.*"
+    "mac_.*"
+    "linux_.*"
+    "solaris_.*"
+    "android_.*"
   )
   string(JOIN "|" _breakpad_exclude_regex ${_breakpad_exclude_files})
   list(FILTER _breakpad_srcs EXCLUDE REGEX "(${_breakpad_exclude_regex})\\.cc$")
