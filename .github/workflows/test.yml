@@ -1,0 +1,312 @@
+name: Test
+run-name: ${{ github.actor }} is testing the project
+
+on:
+  push:
+    branches: [master, develop]
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - ".gitattributes"
+      - "README.md"
+      - "docs/**"
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - ".gitattributes"
+      - "README.md"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Compiler Compatibility
+  # ═══════════════════════════════════════════════════════════════════════════
+  test-compilers:
+    name: ${{ matrix.os }} - ${{ matrix.name }} (${{ matrix.build_type }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'bash' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux GCC
+          - {
+              os: ubuntu-22.04,
+              name: "GCC 9",
+              pkg: "gcc-9 g++-9",
+              cc: gcc-9,
+              cxx: g++-9,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-22.04,
+              name: "GCC 10",
+              pkg: "gcc-10 g++-10",
+              cc: gcc-10,
+              cxx: g++-10,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-22.04,
+              name: "GCC 11",
+              pkg: "gcc-11 g++-11",
+              cc: gcc-11,
+              cxx: g++-11,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-22.04,
+              name: "GCC 12",
+              pkg: "gcc-12 g++-12",
+              cc: gcc-12,
+              cxx: g++-12,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-24.04,
+              name: "GCC 13",
+              pkg: "gcc-13 g++-13",
+              cc: gcc-13,
+              cxx: g++-13,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-24.04,
+              name: "GCC 14",
+              pkg: "gcc-14 g++-14",
+              cc: gcc-14,
+              cxx: g++-14,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          # Linux Clang
+          - {
+              os: ubuntu-22.04,
+              name: "Clang 14",
+              pkg: "clang-14",
+              cc: clang-14,
+              cxx: clang++-14,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-22.04,
+              name: "Clang 15",
+              pkg: "clang-15",
+              cc: clang-15,
+              cxx: clang++-15,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-24.04,
+              name: "Clang 16",
+              pkg: "clang-16",
+              cc: clang-16,
+              cxx: clang++-16,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-24.04,
+              name: "Clang 17",
+              pkg: "clang-17",
+              cc: clang-17,
+              cxx: clang++-17,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: ubuntu-24.04,
+              name: "Clang 18",
+              pkg: "clang-18",
+              cc: clang-18,
+              cxx: clang++-18,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          # Windows MSVC
+          - {
+              os: windows-2022,
+              name: "MSVC 2022",
+              build_type: Release,
+              generator: "Visual Studio 17 2022",
+            }
+          - {
+              os: windows-2022,
+              name: "MSVC 2022 Debug",
+              build_type: Debug,
+              generator: "Visual Studio 17 2022",
+            }
+          - {
+              os: windows-2025,
+              name: "MSVC 2025",
+              build_type: Release,
+              generator: "Visual Studio 17 2022",
+            }
+          # Windows Clang-CL
+          - {
+              os: windows-2025,
+              name: "Clang-CL",
+              build_type: Release,
+              generator: "Visual Studio 17 2022",
+              toolset: ClangCL,
+            }
+          # Windows MinGW
+          - {
+              os: windows-2022,
+              name: "MinGW",
+              build_type: Release,
+              generator: "MinGW Makefiles",
+              env_type: mingw,
+            }
+          # Windows MSYS2 UCRT64
+          - {
+              os: windows-2022,
+              name: "MSYS2 UCRT64",
+              build_type: Release,
+              generator: "Unix Makefiles",
+              env_type: msys2,
+              shell: "msys2 {0}",
+            }
+          # macOS AppleClang
+          - {
+              os: macos-14,
+              name: "AppleClang 14",
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          - {
+              os: macos-15,
+              name: "AppleClang 15",
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+          # macOS GCC
+          - {
+              os: macos-14,
+              name: "GCC 14 (Brew)",
+              pkg: "gcc@14",
+              cc: gcc-14,
+              cxx: g++-14,
+              build_type: Release,
+              generator: "Unix Makefiles",
+            }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: cmake_modules
+          key: ${{ runner.os }}-cpm-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Install compiler (Linux)
+        if: runner.os == 'Linux' && matrix.pkg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.pkg }}
+
+      - name: Setup MinGW (Windows)
+        if: matrix.env_type == 'mingw'
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+          static: 0
+
+      - name: Setup MSYS2 (Windows)
+        if: matrix.env_type == 'msys2'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            make
+
+      - name: Install compiler (macOS)
+        if: runner.os == 'macOS' && matrix.pkg
+        run: brew install ${{ matrix.pkg }}
+
+      - name: Configure CMake
+        run: >
+          cmake -S example/smoke -B build
+          -G "${{ matrix.generator }}"
+          ${{ matrix.toolset && format('-T {0}', matrix.toolset) || '' }}
+          ${{ matrix.cc && format('-DCMAKE_C_COMPILER={0}', matrix.cc) || '' }}
+          ${{ matrix.cxx && format('-DCMAKE_CXX_COMPILER={0}', matrix.cxx) || '' }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Version Validation
+  # ═══════════════════════════════════════════════════════════════════════════
+  test-versions:
+    name: ${{ matrix.os }} - Breakpad ${{ matrix.breakpad.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-14]
+        breakpad:
+          - { hash: "98bea93a3e4f6fb822db3ac5d876e84109f24101", label: "C++98" }
+          - { hash: "ef443fbf777fd001593d135af07f1ff2cfa3294e", label: "C++11" }
+          - { hash: "2c736308b5a4c7a8371fa3a3e434f551eddd17c9", label: "C++17" }
+          - { hash: "6d017fa2c0c440f914385bb794fd88de90fef736", label: "C++20" }
+        include:
+          - os: ubuntu-22.04
+            generator: "Unix Makefiles"
+          - os: windows-2022
+            generator: "Visual Studio 17 2022"
+          - os: macos-14
+            generator: "Unix Makefiles"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: cmake_modules
+          key: ${{ runner.os }}-cpm-${{ matrix.breakpad.hash }}-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Configure CMake
+        run: |
+          cmake -S example/smoke -B build \
+            -G "${{ matrix.generator }}" \
+            -DBREAKPAD_GIT_TAG=${{ matrix.breakpad.hash }} \
+            -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
