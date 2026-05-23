@@ -276,6 +276,10 @@ jobs:
             generator: "Visual Studio 17 2022"
           - os: macos-14
             generator: "Unix Makefiles"
+        exclude:
+          # Obsolete syscall wrappers prevent compilation on modern Linux systems
+          - os: ubuntu-22.04
+            breakpad: { label: "C++98" }
 
     steps:
       - name: Checkout code
@@ -293,6 +297,13 @@ jobs:
             -G "${{ matrix.generator }}" \
             -DBREAKPAD_GIT_TAG=${{ matrix.breakpad.hash }} \
             -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      # Fix upstream Breakpad omitting <cstddef>, which causes std::max_align_t errors in C++20
+      - name: Patch Breakpad Source
+        if: runner.os == 'Linux' && matrix.breakpad.label == 'C++20'
+        run: |
+          find . -name memory_allocator.h -exec sed -i '/#include <stddef.h>/a #include <cstddef>' {} +
         shell: bash
 
       - name: Build
