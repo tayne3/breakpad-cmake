@@ -6,7 +6,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   )
 endif()
 
-project(breakpad-cmake C CXX)
+project(breakpad-cmake
+  VERSION 1.0.0
+  LANGUAGES C CXX
+)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -15,8 +18,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-  get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-  if(NOT isMultiConfig
+  get_property(_is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(NOT _is_multi_config
      AND NOT CMAKE_BUILD_TYPE
      AND NOT CMAKE_CONFIGURATION_TYPES
   )
@@ -26,56 +29,70 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
 endif()
 
-option(BREAKPAD_USE_EXTERNAL "Use external breakpad" ON)
-set(BREAKPAD_EXTERNAL_URL "https://chromium.googlesource.com/breakpad/breakpad" CACHE STRING "Download external URL")
-set(BREAKPAD_EXTERNAL_TAG "2c736308b5a4c7a8371fa3a3e434f551eddd17c9" CACHE STRING "Download external tag")
-if(BREAKPAD_USE_EXTERNAL)
+set(BREAKPAD_SOURCE_DIR "" CACHE PATH "Path to an existing breakpad source checkout (overrides download)")
+set(BREAKPAD_GIT_REPOSITORY "https://chromium.googlesource.com/breakpad/breakpad" CACHE STRING "Git repository URL to fetch breakpad source from")
+set(BREAKPAD_GIT_TAG "2c736308b5a4c7a8371fa3a3e434f551eddd17c9" CACHE STRING "Breakpad git tag or commit hash")
+option(BREAKPAD_USE_FETCH "Automatically download breakpad source if BREAKPAD_SOURCE_DIR is not set" ON)
+
+if(BREAKPAD_SOURCE_DIR)
+  set(_breakpad_rootdir "${BREAKPAD_SOURCE_DIR}")
+  message(STATUS "Using breakpad source at: ${_breakpad_rootdir}")
+elseif(BREAKPAD_USE_FETCH)
   if(NOT DEFINED ENV{CPM_SOURCE_CACHE})
     set(ENV{CPM_SOURCE_CACHE} ${CMAKE_SOURCE_DIR}/cmake_modules)
   endif()
   include(${CMAKE_CURRENT_LIST_DIR}/cmake/CPM.cmake)
   CPMAddPackage(
     NAME breakpad-external
-    GIT_REPOSITORY ${BREAKPAD_EXTERNAL_URL}
-    GIT_TAG ${BREAKPAD_EXTERNAL_TAG}
+    GIT_REPOSITORY ${BREAKPAD_GIT_REPOSITORY}
+    GIT_TAG ${BREAKPAD_GIT_TAG}
     GIT_SHALLOW FALSE
     DOWNLOAD_ONLY
   )
-  set(BREAKPAD_ROOTDIR "${breakpad-external_SOURCE_DIR}")
+  set(_breakpad_rootdir "${breakpad-external_SOURCE_DIR}")
 else()
-  set(BREAKPAD_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/breakpad")
+  set(_breakpad_rootdir "${CMAKE_CURRENT_SOURCE_DIR}/breakpad")
+  message(STATUS "Using local breakpad source at: ${_breakpad_rootdir}")
 endif()
-set(BREAKPAD_SRCDIR "${BREAKPAD_ROOTDIR}/src")
 
-file(GLOB BREAKPAD_SRCS
-  ${BREAKPAD_SRCDIR}/common/*.cc
-  ${BREAKPAD_SRCDIR}/common/*.c
-  ${BREAKPAD_SRCDIR}/client/*.cc
+if(NOT EXISTS "${_breakpad_rootdir}/src")
+  message(FATAL_ERROR "breakpad source not found at ${_breakpad_rootdir}.")
+endif()
+set(_breakpad_srcdir "${_breakpad_rootdir}/src")
+
+file(GLOB _breakpad_srcs
+  ${_breakpad_srcdir}/common/*.cc
+  ${_breakpad_srcdir}/client/*.cc
 )
 
 if(WIN32)
-  file(GLOB_RECURSE BREAKPAD_SRCS
-    ${BREAKPAD_SRCDIR}/client/windows/*.cc
-    ${BREAKPAD_SRCDIR}/common/windows/*.cc
+  file(GLOB_RECURSE _breakpad_platform_srcs
+    ${_breakpad_srcdir}/client/windows/*.cc
+    ${_breakpad_srcdir}/common/windows/*.cc
   )
+  list(APPEND _breakpad_srcs ${_breakpad_platform_srcs})
 elseif(APPLE)
-  file(GLOB_RECURSE BREAKPAD_SRCS
-    ${BREAKPAD_SRCDIR}/client/mac/*.cc
-    ${BREAKPAD_SRCDIR}/common/mac/*.cc
+  file(GLOB_RECURSE _breakpad_platform_srcs
+    ${_breakpad_srcdir}/client/mac/*.cc
+    ${_breakpad_srcdir}/common/mac/*.cc
   )
-  list(APPEND BREAKPAD_SRCS ${BREAKPAD_SRCDIR}/common/mac/MachIPC.mm)
+  list(APPEND _breakpad_srcs ${_breakpad_platform_srcs})
+
+  enable_language(OBJCXX)
+  list(APPEND _breakpad_srcs ${_breakpad_srcdir}/common/mac/MachIPC.mm)
 else()
-  file(GLOB_RECURSE BREAKPAD_SRCS
-    ${BREAKPAD_SRCDIR}/client/linux/*.cc
-    ${BREAKPAD_SRCDIR}/common/linux/*.cc
+  file(GLOB_RECURSE _breakpad_platform_srcs
+    ${_breakpad_srcdir}/client/linux/*.cc
+    ${_breakpad_srcdir}/common/linux/*.cc
   )
+  list(APPEND _breakpad_srcs ${_breakpad_platform_srcs})
 endif()
 
-list(FILTER BREAKPAD_SRCS EXCLUDE REGEX "/sender|/tests|/unittests|/testcases")
-list(FILTER BREAKPAD_SRCS EXCLUDE REGEX "(_unittest|_test|microdump|synth)\\.cc$")
+list(FILTER _breakpad_srcs EXCLUDE REGEX "/sender|/tests|/unittests|/testcases")
+list(FILTER _breakpad_srcs EXCLUDE REGEX "(_unittest|_test|microdump|minidump|synth|upload).*\\.cc$")
 
 if(WIN32)
-  set(BREAKPAD_EXCLUDE_FILES
+  set(_breakpad_exclude_files
     "language"
     "path_helper"
     "stabs_to_module"
@@ -91,51 +108,43 @@ if(WIN32)
     "symbol_collector_client"
     "http_upload"
   )
-  string(REPLACE ";" "|" BREAKPAD_EXCLUDE_REGEX "${BREAKPAD_EXCLUDE_FILES}")
-  list(FILTER BREAKPAD_SRCS EXCLUDE REGEX "(${BREAKPAD_EXCLUDE_REGEX})\\.cc$")
+  string(JOIN "|" _breakpad_exclude_regex ${_breakpad_exclude_files})
+  list(FILTER _breakpad_srcs EXCLUDE REGEX "(${_breakpad_exclude_regex})\\.cc$")
 elseif(NOT APPLE)
   include(CheckSymbolExists)
   check_symbol_exists(getcontext "ucontext.h" HAVE_GETCONTEXT)
   if(NOT HAVE_GETCONTEXT)
     enable_language(ASM)
-    list(APPEND BREAKPAD_SRCS ${BREAKPAD_SRCDIR}/common/linux/breakpad_getcontext.S)
+    list(APPEND _breakpad_srcs ${_breakpad_srcdir}/common/linux/breakpad_getcontext.S)
   endif()
 endif()
 
 if(BUILD_SHARED_LIBS)
-  set(BREAKPAD_LIB_TYPE SHARED)
+  add_library(breakpad SHARED ${_breakpad_srcs})
 else()
-  set(BREAKPAD_LIB_TYPE STATIC)
+  add_library(breakpad STATIC ${_breakpad_srcs})
 endif()
-
-add_library(breakpad ${BREAKPAD_LIB_TYPE} ${BREAKPAD_SRCS})
 add_library(breakpad::breakpad ALIAS breakpad)
-target_include_directories(breakpad PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/linux-syscall-support
-  ${BREAKPAD_SRCDIR}
-)
+target_include_directories(breakpad PUBLIC ${_breakpad_srcdir})
 
-file(STRINGS "${BREAKPAD_ROOTDIR}/configure.ac" AC_LINES REGEX "AX_CXX_COMPILE_STDCXX")
-foreach(line IN LISTS AC_LINES)
-  if((NOT line MATCHES "^[ \t]*(dnl|#)") AND (line MATCHES "AX_CXX_COMPILE_STDCXX\\([ \t]*([0-9]+)"))
-    set(BREAKPAD_CXX_STD "${CMAKE_MATCH_1}")
+file(STRINGS "${_breakpad_rootdir}/configure.ac" _breakpad_ac_lines REGEX "AX_CXX_COMPILE_STDCXX")
+foreach(_line IN LISTS _breakpad_ac_lines)
+  if((NOT _line MATCHES "^[ \t]*(dnl|#)") AND (_line MATCHES "AX_CXX_COMPILE_STDCXX\\([ \t]*([0-9]+)"))
+    set(_breakpad_cxx_std "${CMAKE_MATCH_1}")
     break()
   endif()
 endforeach()
+if(NOT _breakpad_cxx_std)
+  set(_breakpad_cxx_std 98)
+endif()
 set_target_properties(breakpad PROPERTIES
   C_STANDARD 99
   C_STANDARD_REQUIRED ON
   C_EXTENSIONS ON
-  CXX_STANDARD ${BREAKPAD_CXX_STD}
+  CXX_STANDARD ${_breakpad_cxx_std}
   CXX_STANDARD_REQUIRED ON
   CXX_EXTENSIONS ON
 )
-
-if((UNIX AND NOT APPLE) OR CMAKE_SYSTEM_NAME MATCHES "Linux|GNU")
-  target_compile_definitions(breakpad PRIVATE
-    _GNU_SOURCE=1
-  )
-endif()
 
 if(WIN32)
   target_compile_definitions(breakpad PRIVATE
@@ -165,10 +174,18 @@ elseif(APPLE)
   endif()
   target_compile_definitions(breakpad PRIVATE HAVE_MACH_O_NLIST_H)
 else()
+  target_include_directories(breakpad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/linux-syscall-support)
+
   find_package(Threads REQUIRED)
   target_link_libraries(breakpad PRIVATE Threads::Threads)
+
   if(HAVE_GETCONTEXT)
     target_compile_definitions(breakpad PRIVATE HAVE_GETCONTEXT=1)
   endif()
-  target_compile_definitions(breakpad PRIVATE HAVE_A_OUT_H)
+
+  include(CheckIncludeFile)
+  check_include_file("a.out.h" HAVE_A_OUT_H)
+  if(HAVE_A_OUT_H)
+    target_compile_definitions(breakpad PRIVATE HAVE_A_OUT_H)
+  endif()
 endif()
