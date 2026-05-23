@@ -199,16 +199,6 @@ jobs:
               build_type: Release,
               generator: "Unix Makefiles",
             }
-          # macOS GCC
-          - {
-              os: macos-14,
-              name: "GCC 14 (Brew)",
-              pkg: "gcc@14",
-              cc: gcc-14,
-              cxx: g++-14,
-              build_type: Release,
-              generator: "Unix Makefiles",
-            }
 
     steps:
       - name: Checkout code
