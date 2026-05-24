@@ -1,6 +1,17 @@
 # breakpad-cmake
 
+[![Release](https://img.shields.io/github/v/release/tayne3/breakpad-cmake?include_prereleases&label=release&logo=github&logoColor=white)](https://github.com/tayne3/breakpad-cmake/releases)
+[![Tag](https://img.shields.io/github/v/tag/tayne3/breakpad-cmake?color=%23ff8936&style=flat-square&logo=git&logoColor=white)](https://github.com/tayne3/breakpad-cmake/tags)
+[![Tests](https://github.com/tayne3/breakpad-cmake/actions/workflows/test.yml/badge.svg)](https://github.com/tayne3/breakpad-cmake/actions/workflows/test.yml)
+![CMake](https://img.shields.io/badge/CMake-3.14%2B-brightgreen?logo=cmake&logoColor=white)
+
 **breakpad-cmake** is a lightweight CMake wrapper for [Google Breakpad](https://chromium.googlesource.com/breakpad/breakpad).
+
+## Tested Platforms
+
+- **Linux**: x86, x86_64
+- **Windows**: x86, x64
+- **macOS**: x86_64, arm64 (Limited support on modern macOS)
 
 ## Project Integration
 
@@ -12,8 +23,8 @@ project(example)
 
 include(FetchContent)
 FetchContent_Declare(breakpad
-    GIT_REPOSITORY "https://github.com/tayne3/breakpad-cmake"
-    GIT_TAG "0978914018bd5893be99aeffce5c8fc0ed9fc43c"
+    GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
+    GIT_TAG v1.0.0
 )
 FetchContent_MakeAvailable(breakpad)
 
@@ -32,8 +43,8 @@ project(example)
 include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME breakpad
-    GIT_REPOSITORY "https://github.com/tayne3/breakpad-cmake"
-    GIT_TAG "0978914018bd5893be99aeffce5c8fc0ed9fc43c"
+    GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
+    GIT_TAG v1.0.0
 )
 
 add_executable(example main.cpp)
@@ -49,8 +60,8 @@ project(example)
 include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME breakpad
-    GIT_REPOSITORY "https://github.com/tayne3/breakpad-cmake"
-    GIT_TAG "0978914018bd5893be99aeffce5c8fc0ed9fc43c"
+    GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
+    GIT_TAG v1.0.0
     OPTIONS
     "BREAKPAD_USE_FETCH ON"
     "BREAKPAD_GIT_REPOSITORY https://chromium.googlesource.com/breakpad/breakpad"
@@ -65,9 +76,10 @@ target_link_libraries(example breakpad::breakpad)
 
 ### Use a local breakpad checkout
 
-If you already have a breakpad checkout on disk (e.g., from a distro package, a vendored copy, or a custom fork), set `BREAKPAD_SOURCE_DIR`:
+If you already have a breakpad checkout on disk (e.g., from a distro package, a vendored copy, or a custom fork), set `BREAKPAD_SOURCE_DIR` and ensure `BREAKPAD_USE_FETCH` is `OFF`:
 
 ```cmake
+set(BREAKPAD_USE_FETCH OFF CACHE BOOL "" FORCE)
 set(BREAKPAD_SOURCE_DIR "/path/to/breakpad" CACHE PATH "")
 FetchContent_MakeAvailable(breakpad)
 ```
@@ -75,11 +87,12 @@ FetchContent_MakeAvailable(breakpad)
 or
 
 ```cmake
+set(BREAKPAD_USE_FETCH OFF CACHE BOOL "" FORCE)
 set(BREAKPAD_SOURCE_DIR "/path/to/breakpad" CACHE PATH "")
 CPMAddPackage(
     NAME breakpad
-    GIT_REPOSITORY "https://github.com/tayne3/breakpad-cmake"
-    GIT_TAG "0978914018bd5893be99aeffce5c8fc0ed9fc43c"
+    GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
+    GIT_TAG v1.0.0
 )
 ```
 
@@ -88,8 +101,8 @@ CPMAddPackage(
 Set `BREAKPAD_GIT_REPOSITORY` and `BREAKPAD_GIT_TAG` to point at your own fork or a mirror:
 
 ```cmake
-set(BREAKPAD_GIT_REPOSITORY "https://github.com/your-fork/breakpad" CACHE STRING "")
-set(BREAKPAD_GIT_TAG "your-tag-or-commit" CACHE STRING "")
+set(BREAKPAD_GIT_REPOSITORY "https://github.com/google/breakpad" CACHE STRING "")
+set(BREAKPAD_GIT_TAG "98bea93a3e4f6fb822db3ac5d876e84109f24101" CACHE STRING "")
 set(BREAKPAD_USE_FETCH ON)
 
 FetchContent_MakeAvailable(breakpad)
@@ -97,11 +110,11 @@ FetchContent_MakeAvailable(breakpad)
 
 ### Source resolution priority
 
-| Priority | Condition                         | Description                                                           |
-| -------- | --------------------------------- | --------------------------------------------------------------------- |
-| 1        | `BREAKPAD_SOURCE_DIR` is set      | Use the specified local path directly                                 |
-| 2        | `BREAKPAD_USE_FETCH=ON` (default) | Download via CPM from `BREAKPAD_GIT_REPOSITORY` at `BREAKPAD_GIT_TAG` |
-| 3        | `BREAKPAD_USE_FETCH=OFF`          | Use the vendored `breakpad/` subdirectory                             |
+| Priority | Condition                                                     | Description                                     |
+| :------- | :------------------------------------------------------------ | :---------------------------------------------- |
+| 1        | `BREAKPAD_USE_FETCH=ON` (default)                             | Download via CPM from `BREAKPAD_GIT_REPOSITORY` |
+| 2        | `BREAKPAD_USE_FETCH=OFF` AND `BREAKPAD_SOURCE_DIR` is set     | Use the specified local path directly           |
+| 3        | `BREAKPAD_USE_FETCH=OFF` AND `BREAKPAD_SOURCE_DIR` is NOT set | Use the vendored `breakpad/` subdirectory       |
 
 ## Symbol & Minidump Tools
 
