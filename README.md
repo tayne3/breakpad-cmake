@@ -54,7 +54,7 @@ CPMAddPackage(
     OPTIONS
     "BREAKPAD_USE_FETCH ON"
     "BREAKPAD_GIT_REPOSITORY https://chromium.googlesource.com/breakpad/breakpad"
-    "BREAKPAD_GIT_TAG 2c736308b5a4c7a8371fa3a3e434f551eddd17c9"
+    "BREAKPAD_GIT_TAG ef443fbf777fd001593d135af07f1ff2cfa3294e"
 )
 
 add_executable(example main.cpp)
