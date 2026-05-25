@@ -89,7 +89,7 @@ else()
 endif()
 
 list(FILTER _breakpad_srcs EXCLUDE REGEX "/sender|/tests|/unittests|/testcases")
-list(FILTER _breakpad_srcs EXCLUDE REGEX "(_unittest|_test|test_|microdump|minidump|synth|upload).*\\.cc$")
+list(FILTER _breakpad_srcs EXCLUDE REGEX "(_unittest|_test|test_|synth|upload).*\\.cc$")
 
 if(WIN32)
   set(_breakpad_exclude_files
