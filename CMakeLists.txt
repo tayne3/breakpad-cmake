@@ -190,9 +190,7 @@ elseif(APPLE)
   else()
     target_compile_definitions(breakpad PRIVATE
       "MAC_OS_X_VERSION_MAX_ALLOWED=130000"
-      "MAC_OS_X_VERSION_MIN_REQUIRED=120000"
-      "MAC_OS_X_VERSION_10_7=107000"
-      "TARGET_OS_IPHONE=0"
+      "MAC_OS_X_VERSION_MIN_REQUIRED=130000"
     )
     target_compile_options(breakpad PRIVATE
       "-Wno-deprecated-declarations"
