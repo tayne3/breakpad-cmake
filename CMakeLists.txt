@@ -7,7 +7,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(breakpad-cmake
-  VERSION 1.0.0
+  VERSION 1.0.1
   LANGUAGES C CXX
 )
 

@@ -24,7 +24,7 @@ project(example)
 include(FetchContent)
 FetchContent_Declare(breakpad
     GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
-    GIT_TAG v1.0.0
+    GIT_TAG v1.0.1
 )
 FetchContent_MakeAvailable(breakpad)
 
@@ -44,7 +44,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME breakpad
     GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
-    GIT_TAG v1.0.0
+    GIT_TAG v1.0.1
 )
 
 add_executable(example main.cpp)
@@ -61,7 +61,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
     NAME breakpad
     GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
-    GIT_TAG v1.0.0
+    GIT_TAG v1.0.1
     OPTIONS
     "BREAKPAD_USE_FETCH ON"
     "BREAKPAD_GIT_REPOSITORY https://chromium.googlesource.com/breakpad/breakpad"
@@ -92,7 +92,7 @@ set(BREAKPAD_SOURCE_DIR "/path/to/breakpad" CACHE PATH "")
 CPMAddPackage(
     NAME breakpad
     GIT_REPOSITORY https://github.com/tayne3/breakpad-cmake
-    GIT_TAG v1.0.0
+    GIT_TAG v1.0.1
 )
 ```
 
