@@ -132,6 +132,13 @@ endif()
 add_library(breakpad::breakpad ALIAS breakpad)
 target_include_directories(breakpad PUBLIC ${_breakpad_srcdir})
 
+if(NOT WIN32)
+  target_compile_options(breakpad PUBLIC
+    $<$<COMPILE_LANGUAGE:C>:SHELL:-include stdint.h -include stddef.h>
+    $<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstdint -include cstddef>
+  )
+endif()
+
 file(STRINGS "${_breakpad_rootdir}/configure.ac" _breakpad_ac_lines REGEX "AX_CXX_COMPILE_STDCXX")
 foreach(_line IN LISTS _breakpad_ac_lines)
   if((NOT _line MATCHES "^[ \t]*(dnl|#)") AND (_line MATCHES "AX_CXX_COMPILE_STDCXX[ \t]*\\([ \t]*([0-9]+)"))
@@ -177,7 +184,19 @@ elseif(APPLE)
   find_library(CoreFoundation_FRAMEWORK CoreFoundation)
   target_link_libraries(breakpad PRIVATE ${CoreFoundation_FRAMEWORK})
   if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    target_compile_definitions(breakpad PRIVATE USE_PROTECTED_ALLOCATIONS=0)
+    target_compile_definitions(breakpad PRIVATE
+      USE_PROTECTED_ALLOCATIONS=0
+    )
+  else()
+    target_compile_definitions(breakpad PRIVATE
+      "MAC_OS_X_VERSION_MAX_ALLOWED=130000"
+      "MAC_OS_X_VERSION_MIN_REQUIRED=120000"
+      "MAC_OS_X_VERSION_10_7=107000"
+      "TARGET_OS_IPHONE=0"
+    )
+    target_compile_options(breakpad PRIVATE
+      "-Wno-deprecated-declarations"
+    )
   endif()
   target_compile_definitions(breakpad PRIVATE HAVE_MACH_O_NLIST_H)
 else()
