@@ -208,7 +208,7 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v6
         with:
-          path: cmake_modules
+          path: example/smoke/cmake_modules
           key: ${{ runner.os }}-cpm-${{ hashFiles('**/CMakeLists.txt') }}
 
       - name: Install compiler (Linux)
@@ -245,7 +245,7 @@ jobs:
           ${{ matrix.toolset && format('-T {0}', matrix.toolset) || '' }}
           ${{ matrix.cc && format('-DCMAKE_C_COMPILER={0}', matrix.cc) || '' }}
           ${{ matrix.cxx && format('-DCMAKE_CXX_COMPILER={0}', matrix.cxx) || '' }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ !startsWith(matrix.generator, 'Visual Studio') && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} --parallel
@@ -273,10 +273,12 @@ jobs:
         include:
           - os: ubuntu-22.04
             generator: "Unix Makefiles"
+            build_type: Release
           - os: windows-2022
             generator: "Visual Studio 17 2022"
           - os: macos-14
             generator: "Unix Makefiles"
+            build_type: Release
         exclude:
           # Obsolete syscall wrappers prevent compilation on modern Linux systems
           - os: ubuntu-22.04
@@ -289,7 +291,7 @@ jobs:
       - name: Cache Dependencies
         uses: actions/cache@v6
         with:
-          path: cmake_modules
+          path: example/smoke/cmake_modules
           key: ${{ runner.os }}-cpm-${{ matrix.breakpad.hash }}-${{ hashFiles('**/CMakeLists.txt') }}
 
       - name: Configure CMake
@@ -297,7 +299,7 @@ jobs:
           cmake -S example/smoke -B build \
             -G "${{ matrix.generator }}" \
             -DBREAKPAD_GIT_TAG=${{ matrix.breakpad.hash }} \
-            -DCMAKE_BUILD_TYPE=Release
+            ${{ matrix.build_type && format('-DCMAKE_BUILD_TYPE={0}', matrix.build_type) || '' }}
         shell: bash
 
       - name: Build
