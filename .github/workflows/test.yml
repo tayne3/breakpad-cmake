@@ -155,18 +155,19 @@ jobs:
               build_type: Debug,
               generator: "Visual Studio 17 2022",
             }
+          # windows-2025 now maps to the VS2026 image; VS2022 remains on windows-2022.
           - {
-              os: windows-2025,
-              name: "MSVC 2025",
+              os: windows-2025-vs2026,
+              name: "MSVC 2026",
               build_type: Release,
-              generator: "Visual Studio 17 2022",
+              generator: "Visual Studio 18 2026",
             }
           # Windows Clang-CL
           - {
-              os: windows-2025,
+              os: windows-2025-vs2026,
               name: "Clang-CL",
               build_type: Release,
-              generator: "Visual Studio 17 2022",
+              generator: "Visual Studio 18 2026",
               toolset: ClangCL,
             }
           # Windows MinGW
@@ -202,10 +203,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: cmake_modules
           key: ${{ runner.os }}-cpm-${{ hashFiles('**/CMakeLists.txt') }}
@@ -283,10 +284,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: cmake_modules
           key: ${{ runner.os }}-cpm-${{ matrix.breakpad.hash }}-${{ hashFiles('**/CMakeLists.txt') }}
