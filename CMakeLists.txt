@@ -115,6 +115,39 @@ if(WIN32)
   )
   string(JOIN "|" _breakpad_exclude_regex ${_breakpad_exclude_files})
   list(FILTER _breakpad_srcs EXCLUDE REGEX "(${_breakpad_exclude_regex})\\.cc$")
+
+  # MSVC 19.50+ (Visual Studio 2026) removed stdext::checked_array_iterator.
+  # Breakpad versions before commit 327991c still use it, so build a patched
+  # copy of the file with the portable std::copy branch instead of modifying
+  # the source checkout.
+  set(_breakpad_minidump_generator
+      "${_breakpad_srcdir}/client/windows/crash_generation/minidump_generator.cc")
+  if(EXISTS "${_breakpad_minidump_generator}")
+    file(READ "${_breakpad_minidump_generator}" _breakpad_minidump_generator_src)
+    if(_breakpad_minidump_generator_src MATCHES "stdext::checked_array_iterator")
+      string(REPLACE
+        "#if defined(_MSC_VER) && !defined(_LIBCPP_STD_VER)"
+        "#if defined(_MSC_VER) && !defined(_LIBCPP_STD_VER) && _MSC_VER < 1950"
+        _breakpad_minidump_generator_src
+        "${_breakpad_minidump_generator_src}"
+      )
+      set(_breakpad_patch_dir "${CMAKE_CURRENT_BINARY_DIR}/breakpad-patched")
+      set(_breakpad_patched_minidump_generator
+          "${_breakpad_patch_dir}/minidump_generator.cc")
+      if(EXISTS "${_breakpad_patched_minidump_generator}")
+        file(READ "${_breakpad_patched_minidump_generator}" _breakpad_patched_existing)
+      else()
+        set(_breakpad_patched_existing "")
+      endif()
+      if(NOT _breakpad_patched_existing STREQUAL _breakpad_minidump_generator_src)
+        file(MAKE_DIRECTORY "${_breakpad_patch_dir}")
+        file(WRITE "${_breakpad_patched_minidump_generator}"
+             "${_breakpad_minidump_generator_src}")
+      endif()
+      list(REMOVE_ITEM _breakpad_srcs "${_breakpad_minidump_generator}")
+      list(APPEND _breakpad_srcs "${_breakpad_patched_minidump_generator}")
+    endif()
+  endif()
 elseif(NOT APPLE)
   include(CheckSymbolExists)
   check_symbol_exists(getcontext "ucontext.h" HAVE_GETCONTEXT)
