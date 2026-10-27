@@ -116,10 +116,10 @@ if(WIN32)
   string(JOIN "|" _breakpad_exclude_regex ${_breakpad_exclude_files})
   list(FILTER _breakpad_srcs EXCLUDE REGEX "(${_breakpad_exclude_regex})\\.cc$")
 
-  # MSVC 19.50+ (Visual Studio 2026) removed stdext::checked_array_iterator.
-  # Breakpad versions before commit 327991c still use it, so build a patched
-  # copy of the file with the portable std::copy branch instead of modifying
-  # the source checkout.
+  # stdext::checked_array_iterator is deprecated and was removed in MSVC
+  # 19.50+ (Visual Studio 2026). Breakpad versions before commit 327991c
+  # still use it, so build a patched copy of the file with the portable
+  # std::copy branch instead of modifying the source checkout.
   set(_breakpad_minidump_generator
       "${_breakpad_srcdir}/client/windows/crash_generation/minidump_generator.cc")
   if(EXISTS "${_breakpad_minidump_generator}")
@@ -127,7 +127,7 @@ if(WIN32)
     if(_breakpad_minidump_generator_src MATCHES "stdext::checked_array_iterator")
       string(REPLACE
         "#if defined(_MSC_VER) && !defined(_LIBCPP_STD_VER)"
-        "#if defined(_MSC_VER) && !defined(_LIBCPP_STD_VER) && _MSC_VER < 1950"
+        "#if 0  // stdext::checked_array_iterator is removed in VS2026"
         _breakpad_minidump_generator_src
         "${_breakpad_minidump_generator_src}"
       )
